@@ -2,13 +2,13 @@
 
 **Turn a cloth simulation into bone animation in Blender.**
 
-Cloth simulations (capes, skirts, flags…) look great in Blender, but game engines and many export formats only understand armatures and bones. SimToBones adds one bone per face of your simulated mesh, makes each bone follow its face, and lets you bake the result into regular keyframes you can export.
+Cloth simulations (capes, skirts, flags…) look great in Blender, but game engines and many export formats only understand armatures and bones. SimToBones adds one bone per face of your simulated mesh, makes each bone follow its face, bakes the result into regular keyframes, and skins the mesh to those bones, so you get a rigged, animated cape you can export.
 
 It automates the technique shown in [this video](https://youtu.be/1cXyIjaFxXY?si=8r_-1oLmTwKitgUG&t=750).
 
 - Works with **Blender 4.2 to 5.3** (tested on 5.3)
 - Packaged as a Blender **extension**
-- Includes a one-click **test scene** to try it out safely
+- Includes a **step-by-step guide** and a **test scene** to learn it safely
 
 ---
 
@@ -20,7 +20,11 @@ For every face of the mesh (or only the faces you choose with a vertex group), S
 2. **Creates an empty** at the same spot and parents it to three vertices of the face, so the empty rides along with the simulation.
 3. **Adds a Copy Transforms constraint** to the bone, targeting the empty, so the bone follows the cloth.
 
-You then bake the bones' motion into keyframes and switch off the simulation. The armature now plays the cloth motion on its own.
+Then:
+
+4. **Bake to Keyframes** records the bones' motion as keyframes.
+5. The constraints and the simulation are switched off. The bones now play the motion on their own.
+6. **Skin Mesh to Bones** weights every vertex to the bones of the faces around it and adds an Armature modifier, so the mesh follows the bones. The result is an ordinary skinned mesh, with no simulation left.
 
 ---
 
@@ -35,17 +39,25 @@ The tool then appears in the 3D Viewport sidebar (press **N**) under the **FaceT
 
 ---
 
-## Quick start: try it on the test scene
+## Quick start: the Step by Step guide
 
-Not sure yet? Try it on a sample first, without touching your project.
+The **Step by Step** panel at the top of the FaceTools tab walks you through the whole process, one button per step. Each step unlocks once the previous one is done, ✔ marks the finished steps, and the current step shows a short explanation of what it does.
 
-1. Open the **FaceTools** tab in the sidebar.
-2. Click **Create Test Scene**.
-   A new scene named *SimToBones Test* is created with an animated armature and a cloth cape, and the panel is filled in for you.
-3. Click **Generate Face Bones & Empties**.
-4. Press **Play**. The bones swing along with the cape.
+| Step | What happens | What you'll see when you press Play |
+|---|---|---|
+| **1. Create Test Scene** | Builds a separate scene *SimToBones Test* with an animated rig and a cloth cape, and fills in the settings. Nothing is generated or baked yet. | The cape swings with the rig. |
+| **2. Add Bones** | Adds one bone per face of the cape. | The bones stay still. |
+| **3. Add Empties** | Adds an empty on each bone, glued to its face. | The empties follow the cloth, the bones don't. |
+| **4. Add Constraints** | Makes each bone copy its empty. | The bones follow the cloth live, but nothing is recorded. |
+| **5. Bake to Keyframes** | Plays the whole frame range and records every bone's motion as keyframes. | Same motion, now also saved as keys. |
+| **6. Disable Constraints & Simulation** | Turns off the cloth and the constraints. | The bones still move, driven only by their keyframes, but the cape is frozen because it isn't weighted to the bones yet. |
+| **7. Skin Mesh to Bones** | Weights each vertex to the bones of its faces and adds an Armature modifier. | The cape follows the bones, with no simulation at all. Done! |
 
-When you're done, switch back to your own scene with the scene selector at the top of the Blender window, and delete the test scene. Clicking **Create Test Scene** again rebuilds it from scratch.
+Use **Play / Pause** under the steps to check each stage, and **Start Over** to remove everything and go back to step 2.
+
+Your own scenes are not touched. When you're done, switch back with the scene selector at the top of the Blender window and delete the test scene. Clicking **Create Test Scene** again rebuilds it from scratch.
+
+You can also follow the guide on your own project: skip step 1 by picking your mesh and armature in the **Face to Bones** panel.
 
 ---
 
@@ -72,32 +84,47 @@ When you're done, switch back to your own scene with the scene selector at the t
 
 ### 3. Generate
 
-Click **Generate Face Bones & Empties**, then play the animation. The new bones should follow the cloth.
+Click **Generate Face Bones & Empties**, which runs steps 2 to 4 of the guide in one go, then play the animation. The new bones should follow the cloth.
 
 ### 4. Bake the animation
 
 The bones only follow the cloth because of their constraints. To turn this into real keyframes:
 
-1. Select the armature and enter **Pose Mode**.
-2. Select the generated bones (their names start with your prefix, e.g. `VXBone_…`).
-3. Bake the motion into keyframes, either:
-   - with **Pose > Animation > Bake Action…**, ticking **Visual Keying** (recommended, it bakes the whole frame range in one go), or
-   - by inserting **Visual** keyframes manually.
-4. Back in the **FaceTools** panel, click **Disable Constraints**.
-5. Disable the cloth simulation (or its modifier) on the mesh.
-6. Play the animation to check the result. The bones should move exactly as before, now driven by keyframes only.
+1. Set the scene's frame range (**Start** / **End**) to the part of the animation you want.
+2. Click **Bake to Keyframes**. The tool plays through the range from the first frame and keys every generated bone on every frame.
+3. Click **Constraints Off** and **Simulation Off** (or **Disable Constraints & Simulation** in the guide).
+4. Play the animation. The bones move exactly as before, now driven by keyframes only, but the mesh stays still.
+
+### 5. Skin the mesh
+
+Click **Skin Mesh to Bones**. Each vertex gets a weight for the bones of the faces around it (shared equally), and an Armature modifier named *SimToBones Skin* is added to the mesh. Play the animation: the mesh now follows the bones closely. On the test scene it is about 4 mm off on average from the real simulation, for a cape that moves 1.5 m.
+
+Good to know:
+
+- Vertices without a bone of their own (faces skipped by the weight filter) are given to the nearest bone.
+- Other Armature modifiers on the mesh that use the **same** armature are switched off while the skin is active, because they would read the new weights too and deform the mesh twice. They are switched back on by **Simulation On** or **Cleanup**.
+- Skin and live simulation can't run together, since the mesh would follow the bones while the bones follow the mesh. So **Simulation On** and **Constraints On** remove the skin. After re-baking, click **Skin Mesh to Bones** again.
+- The mesh should keep the same position relative to the armature as when the bones were generated. Parenting the mesh to the armature is the easiest way.
+
+Baking again replaces the previous bake. You can also bake with Blender's own **Pose > Animation > Bake Action…** (with **Visual Keying**) if you prefer.
 
 ---
 
 ## Panel buttons
 
+**Face to Bones** panel:
+
 | Button | What it does |
 |---|---|
-| **Create Test Scene** | Builds a separate sample scene to try the tool. |
-| **Generate Face Bones & Empties** | Creates the bones, empties and constraints. |
-| **Cleanup Face Bones & Empties** | Deletes every bone and empty created with the current prefix. |
-| **Enable / Disable Constraints** | Turns the Copy Transforms constraints of the generated bones on or off, which is useful after baking. |
-| **Remove Copy Transforms Constraints** | Deletes those constraints entirely. |
+| **Generate Face Bones & Empties** | Adds the bones, empties and constraints in one go. |
+| **Bake to Keyframes** | Records the bones' motion over the scene frame range as keyframes. |
+| **Skin Mesh to Bones** | Weights the mesh to the generated bones and adds an Armature modifier, so the mesh follows them. |
+| **Cleanup Face Bones & Empties** | Deletes everything created with the current prefix (bones, empties, constraints, baked keys, skin weights) and re-enables the simulation. |
+| **Constraints On / Off** | Turns the Copy Transforms constraints of the generated bones on or off. **On** removes the skin. |
+| **Simulation On / Off** | Turns the mesh's cloth / soft body modifiers on or off. **On** removes the skin. |
+| **Remove Copy Transforms Constraints** | Deletes the constraints entirely. |
+
+**Step by Step** panel: the seven guided steps above, plus **Play / Pause** and **Start Over**.
 
 ---
 
@@ -116,7 +143,11 @@ A face gets a bone only if the average weight of its vertices is at least the th
 
 - **"Prefix is already used"**: bones or empties with this prefix already exist. Click **Cleanup** first, or choose another prefix.
 - **"Filtering enabled but no valid vertex group selected"**: pick a vertex group, or turn off the weight filter.
-- **Bones don't move**: make sure the cloth simulation actually plays (check its cache frame range), and that the constraints are enabled.
+- **Bones don't move**: make sure the cloth simulation actually plays (check its cache frame range), and that the constraints and the simulation are enabled.
+- **"Constraints are disabled" / "The simulation is disabled" when baking**: turn them back on first. The bake records what the constraints produce.
+- **The mesh doesn't move after baking**: run **Skin Mesh to Bones** (step 7).
+- **The skin disappeared**: **Simulation On** or **Constraints On** removes it on purpose. Bake again, then skin again.
+- **A step button is greyed out** in the guide: finish the previous step first.
 
 ---
 

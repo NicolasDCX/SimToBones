@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "sim_to_bones"
-version = "1.5.0"
+version = "1.7.0"
 name = "SimToBones"
 tagline = "Turn a cloth simulation into bones you can bake and export"
 maintainer = "Nicolas D"
